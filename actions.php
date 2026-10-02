@@ -5,163 +5,65 @@ require_once __DIR__ . '/functions.php';
 
 $products = require __DIR__ . '/data/products.php';
 
-require __DIR__ . '/components/header.php';
-?>
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    setFlash('Akses tidak valid.');
+    header('Location: index.php');
+    exit;
+}
 
-<h1>Keranjang Belanja</h1>
+$action = isset($_POST['action']) ? $_POST['action'] : '';
 
-<?php if (empty($_SESSION['cart'])): ?>
+$id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 
-    <div class="card">
+if ($action === 'add') {
 
-        <p>Keranjang masih kosong.</p>
+    if ($id === false || $id === null || !isset($products[$id])) {
 
-        <a href="index.php">
-            Kembali ke Produk
-        </a>
+        setFlash('Produk tidak valid.');
+        header('Location: index.php');
+        exit;
+    }
 
-    </div>
+    if (isset($_SESSION['cart'][$id])) {
+        $_SESSION['cart'][$id]++;
+    } else {
+        $_SESSION['cart'][$id] = 1;
+    }
 
-<?php else: ?>
+    setFlash('Produk ditambahkan ke keranjang.');
 
-    <div class="card">
+    header('Location: index.php');
+    exit;
+}
 
-        <table>
+if ($action === 'remove') {
 
-            <thead>
+    if ($id === false || $id === null || !isset($_SESSION['cart'][$id])) {
 
-                <tr>
-                    <th>Produk</th>
-                    <th>Harga</th>
-                    <th>Jumlah</th>
-                    <th>Subtotal</th>
-                    <th>Aksi</th>
-                </tr>
+        setFlash('Item keranjang tidak valid.');
+        header('Location: cart.php');
+        exit;
+    }
 
-            </thead>
+    unset($_SESSION['cart'][$id]);
 
-            <tbody>
+    setFlash('Produk dihapus dari keranjang.');
 
-            <?php
-            $total = 0;
-            ?>
+    header('Location: cart.php');
+    exit;
+}
 
-            <?php foreach ($_SESSION['cart'] as $id => $quantity): ?>
+if ($action === 'clear') {
 
-                <?php
+    $_SESSION['cart'] = array();
 
-                if (!isset($products[$id])) {
-                    continue;
-                }
+    setFlash('Keranjang dikosongkan.');
 
-                $product = $products[$id];
+    header('Location: cart.php');
+    exit;
+}
 
-                $subtotal = $product['harga'] * $quantity;
+setFlash('Permintaan tidak valid.');
 
-                $total += $subtotal;
-
-                ?>
-
-                <tr>
-
-                    <td>
-                        <?= e($product['nama']) ?>
-                    </td>
-
-                    <td>
-                        Rp <?= number_format($product['harga'], 0, ',', '.') ?>
-                    </td>
-
-                    <td>
-                        <?= e((string) $quantity) ?>
-                    </td>
-
-                    <td>
-                        Rp <?= number_format($subtotal, 0, ',', '.') ?>
-                    </td>
-
-                    <td>
-
-                        <form
-                            action="actions.php"
-                            method="POST"
-                        >
-
-                            <input
-                                type="hidden"
-                                name="action"
-                                value="remove"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="id"
-                                value="<?= e((string) $id) ?>"
-                            >
-
-                            <button
-                                type="submit"
-                                class="btn-delete"
-                            >
-                                Hapus
-                            </button>
-
-                        </form>
-
-                    </td>
-
-                </tr>
-
-            <?php endforeach; ?>
-
-            </tbody>
-
-            <tfoot>
-
-                <tr>
-
-                    <th colspan="3">
-                        Total
-                    </th>
-
-                    <th>
-                        Rp <?= number_format($total, 0, ',', '.') ?>
-                    </th>
-
-                    <th></th>
-
-                </tr>
-
-            </tfoot>
-
-        </table>
-
-        <br>
-
-        <form
-            action="actions.php"
-            method="POST"
-        >
-
-            <input
-                type="hidden"
-                name="action"
-                value="clear"
-            >
-
-            <button
-                type="submit"
-                class="btn-clear"
-            >
-                Kosongkan Keranjang
-            </button>
-
-        </form>
-
-    </div>
-
-<?php endif; ?>
-
-<?php
-require __DIR__ . '/components/footer.php';
-?>
+header('Location: index.php');
+exit;
